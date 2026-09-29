@@ -26,6 +26,8 @@
                 </div>
             @endforeach
         </div>
+        <div class="mt-4">{{ $products->links() }}</div>
+
         <div class="mt-4 border-t pt-3">
             <template x-for="item in cart" :key="item.id">
                 <div class="flex items-center justify-between py-1">
