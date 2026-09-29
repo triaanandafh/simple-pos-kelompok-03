@@ -3,5 +3,6 @@
         <span class="font-semibold">Simple POS</span>
         <a href="{{ route('pos.create') }}" class="hover:underline {{ request()->routeIs('pos.*') ? 'font-bold underline' : '' }}">Kasir</a>
         <a href="{{ route('transactions.index') }}" class="hover:underline {{ request()->routeIs('transactions.*') ? 'font-bold underline' : '' }}">Transaksi</a>
+        <a href="{{ route('products.index') }}" class="hover:underline">Produk</a>
     </nav>
 </div>
