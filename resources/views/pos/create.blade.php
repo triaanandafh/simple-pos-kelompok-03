@@ -17,12 +17,17 @@
 
     <form method="POST" action="{{ route('transactions.store') }}" x-data="{
         cart: [],
-        addToCart(id, name, price) {
-            this.cart.push({ id, name, price });
-        },
-        subtotal() {
-            return this.cart.reduce((sum, item) => sum + item.price, 0);
-        }
+    addToCart(id, name, price) {
+    let item = this.cart.find(i => i.id === id);
+    if (item) {
+        item.qty++;
+    } else {
+        this.cart.push({ id, name, price, qty: 1 });
+    }
+},
+subtotal() {
+    return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+}
     }">
         @csrf
 
@@ -41,7 +46,9 @@
                 <div>
                     <p x-text="item.name + ' - Rp ' + item.price"></p>
                     <input type="hidden" :name="'items[' + index + '][product_id]'" :value="item.id">
-                    <input type="hidden" :name="'items[' + index + '][qty]'" value="1">
+                    <input type="hidden" :name="'items[' + index + '][qty]'" :value="item.qty">
+            
+            <button type="button" class="text-sm text-red-600 hover:underline" @click="removeFromCart(item.id)">Hapus</button>
                 </div>
             </template>
 
