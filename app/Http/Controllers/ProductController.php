@@ -34,7 +34,6 @@ class ProductController extends Controller
 
    public function edit(Product $product)
     {
-<<<<<<< HEAD
         $product = Product::findOrFail($id);
         $categories = Category::orderBy('name')->get();
         return view('products.edit', compact('product', 'categories'));
@@ -48,7 +47,6 @@ class ProductController extends Controller
         return redirect()
             ->route('products.index')
             ->with('success', 'Produk berhasil diperbarui.');
-=======
         $categories = Category::all();
         return view('products.edit', compact('product', 'categories'));
     }
@@ -59,6 +57,5 @@ class ProductController extends Controller
 
         return redirect()->route('products.index')
                         ->with('success', 'Produk berhasil diperbarui.');
->>>>>>> 705e4cdfceea8c5f4de1ba200b9a3bb6dae48d81
     }
 }
