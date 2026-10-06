@@ -32,7 +32,7 @@ class ProductController extends Controller
             ->with('success', 'Produk berhasil ditambahkan.');
     }
 
-   public function edit(Product $product)
+public function edit(string $id)
     {
         $product = Product::findOrFail($id);
         $categories = Category::orderBy('name')->get();
@@ -47,15 +47,6 @@ class ProductController extends Controller
         return redirect()
             ->route('products.index')
             ->with('success', 'Produk berhasil diperbarui.');
-        $categories = Category::all();
-        return view('products.edit', compact('product', 'categories'));
     }
-
-    public function update(StoreProductRequest $request, Product $product)
-    {
-        $product->update($request->validated());
-
-        return redirect()->route('products.index')
-                        ->with('success', 'Produk berhasil diperbarui.');
-    }
+       
 }
