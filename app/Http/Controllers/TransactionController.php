@@ -39,6 +39,11 @@ class TransactionController extends Controller
 
             foreach ($validated['items'] as $item) {
                 $product = Product::findOrFail($item['product_id']);
+                if ($product->stock < $item['qty']) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'items' => "Stok produk {$product->name} tidak mencukupi."
+                    ]);
+                }
                 $subtotal = $product->price * $item['qty'];
                 $total += $subtotal;
 
