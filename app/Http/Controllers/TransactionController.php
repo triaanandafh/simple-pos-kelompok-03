@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\StoreTransactionRequest;
 use App\Models\Product;
 use App\Models\ShopSetting;
 use App\Models\Transaction;
@@ -25,7 +25,7 @@ class TransactionController extends Controller
         return view('pos.create', ['products' => $products]);
     }
 
-    public function store(StoreProductRequest $request)
+    public function store(StoreTransactionRequest $request) 
     {
         $validated = $request->validated();
 
