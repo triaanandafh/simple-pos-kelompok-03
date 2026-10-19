@@ -18,6 +18,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'store']);
 });
 
+// Halaman info khusus tamu (belum login)
+Route::get('/info', function () {
+    return view('info');
+})->middleware('guest')->name('info');
+
 // Route untuk User yang SUDAH Login
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
