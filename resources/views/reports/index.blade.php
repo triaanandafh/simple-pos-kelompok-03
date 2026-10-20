@@ -17,6 +17,18 @@
                 <input type="date" id="to" name="to" value="{{ $to }}" class="border rounded px-3 py-2">
             </div>
 
+            <div>
+                <label for="category" class="block text-sm font-medium mb-1">Kategori</label>
+                <select id="category" name="category" class="border rounded px-3 py-2">
+                    <option value="">Semua kategori</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}" @selected((string) $selectedCategory === (string) $category->id)>
+                            {{ $category->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             <button type="submit" class="bg-slate-900 text-white rounded px-4 py-2 hover:bg-slate-700">
                 Filter
             </button>
