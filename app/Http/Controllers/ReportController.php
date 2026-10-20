@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Transaction;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -16,14 +17,21 @@ class ReportController extends Controller
         $validated = $request->validate([
             'category' => ['nullable', 'integer', 'exists:categories,id'],
         ]);
+
         $categoryId = $validated['category'] ?? null;
+
         [$from, $to] = $this->resolveDateRange($request);
-        $transactions = $this->filteredTransactions($from, $to, $categoryId);
+
+        $transactions = $this->filteredQuery($from, $to, $categoryId)
+            ->get();
 
         return view('reports.index', [
             'totalPenjualan' => $categoryId === null
                 ? $transactions->sum('total')
-                : $transactions->sum(fn (Transaction $transaction) => $transaction->details->sum('subtotal')),
+                : $transactions->sum(
+                    fn (Transaction $transaction) =>
+                        $transaction->details->sum('subtotal')
+                ),
             'jumlahTransaksi' => $transactions->count(),
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
@@ -32,25 +40,75 @@ class ReportController extends Controller
         ]);
     }
 
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $validated = $request->validate([
+            'category' => ['nullable', 'integer', 'exists:categories,id'],
+        ]);
+
+        $categoryId = $validated['category'] ?? null;
+
+        [$from, $to] = $this->resolveDateRange($request);
+
+        $query = $this->filteredQuery($from, $to, $categoryId);
+
+        return response()->streamDownload(function () use ($query, $categoryId) {
+            $out = fopen('php://output', 'w');
+
+            fputcsv($out, ['ID', 'Tanggal', 'Kasir', 'Total']);
+
+            foreach ($query->lazyById() as $transaction) {
+                $total = $categoryId === null
+                    ? $transaction->total
+                    : $transaction->details->sum('subtotal');
+
+                fputcsv($out, [
+                    $transaction->id,
+                    $transaction->created_at,
+                    $transaction->user?->name ?? '',
+                    $total,
+                ]);
+            }
+
+            fclose($out);
+        }, 'laporan-penjualan.csv');
+    }
+
     private function resolveDateRange(Request $request): array
     {
-        $from = $request->date('from')?->startOfDay() ?? now()->startOfMonth();
-        $to = $request->date('to')?->endOfDay() ?? now()->endOfDay();
+        $from = $request->date('from')?->startOfDay()
+            ?? now()->startOfMonth();
+
+        $to = $request->date('to')?->endOfDay()
+            ?? now()->endOfDay();
 
         return [$from, $to];
     }
 
-    private function filteredTransactions(Carbon $from, Carbon $to, ?int $categoryId): Collection
-    {
+    private function filteredQuery(
+        Carbon $from,
+        Carbon $to,
+        ?int $categoryId
+    ): Builder {
         return Transaction::query()
+            ->with('user')
             ->whereBetween('created_at', [$from, $to])
-            ->when($categoryId !== null, function ($query) use ($categoryId) {
-                $query->whereHas('details.product', fn ($productQuery) => $productQuery->where('category_id', $categoryId))
-                    ->with(['details' => fn ($detailsQuery) => $detailsQuery->whereHas(
+            ->when($categoryId !== null, function (Builder $query) use ($categoryId) {
+                $query->whereHas(
+                    'details.product',
+                    fn ($productQuery) => $productQuery->where(
+                        'category_id',
+                        $categoryId
+                    )
+                )->with([
+                    'details' => fn ($detailsQuery) => $detailsQuery->whereHas(
                         'product',
-                        fn ($productQuery) => $productQuery->where('category_id', $categoryId)
-                    )]);
-            })
-            ->get();
+                        fn ($productQuery) => $productQuery->where(
+                            'category_id',
+                            $categoryId
+                        )
+                    ),
+                ]);
+            });
     }
 }
