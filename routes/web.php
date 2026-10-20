@@ -29,13 +29,19 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
-    // Kasir POS (Bisa diakses Admin maupun Kasir)
-    Route::get('/pos', [TransactionController::class, 'create'])->name('pos.create');
-    Route::post('/pos', [TransactionController::class, 'store'])->name('transactions.store');
-    Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
-    Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
+    // Riwayat transaksi: Admin, Kasir, dan Manager (manager untuk monitoring)
+    Route::middleware('role:admin,manager,kasir')->group(function () {
+        Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+        Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
+    });
 
-    // Route KHUSUS ADMIN
+    // Kasir POS (penjualan): hanya Admin dan Kasir — Manager tidak menjual
+    Route::middleware('role:admin,kasir')->group(function () {
+        Route::get('/pos', [TransactionController::class, 'create'])->name('pos.create');
+        Route::post('/pos', [TransactionController::class, 'store'])->name('transactions.store');
+    });
+
+    // Route KHUSUS ADMIN (Manager dilarang mengelola produk & kategori)
     Route::middleware('role:admin')->group(function () {
         Route::resource('categories', CategoryController::class)->except('show');
         Route::resource('products', ProductController::class)->except(['show', 'destroy']);

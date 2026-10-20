@@ -55,6 +55,27 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    public function isManager(): bool
+    {
+        return $this->role === 'manager';
+    }
+
+    /**
+     * Boleh melihat seluruh transaksi (bukan hanya milik sendiri).
+     */
+    public function seesAllTransactions(): bool
+    {
+        return in_array($this->role, ['admin', 'manager'], true);
+    }
+
+    /**
+     * Boleh masuk ke halaman kasir POS (menjual).
+     */
+    public function canAccessPos(): bool
+    {
+        return in_array($this->role, ['admin', 'kasir'], true);
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);

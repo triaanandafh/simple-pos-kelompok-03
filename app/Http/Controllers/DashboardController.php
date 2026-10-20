@@ -15,12 +15,12 @@ class DashboardController extends Controller
 
         $todayTotal = Transaction::whereDate('created_at', today())
             ->whereDate('created_at', today())
-            ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
+            ->when(! $user->seesAllTransactions(), fn ($q) => $q->where('user_id', $user->id))
             ->sum('total');
 
         $todayCount = Transaction::whereDate('created_at', today())
             ->whereDate('created_at', today())
-            ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
+            ->when(! $user->seesAllTransactions(), fn ($q) => $q->where('user_id', $user->id))
             ->count();
 
         $lowStock = Product::where('stock', '<', 10)->orderBy('stock')->limit(5)->get();
@@ -28,7 +28,7 @@ class DashboardController extends Controller
         $rangeStart = today()->subDays(6);
         $dailyTotals = Transaction::whereBetween('created_at', [$rangeStart->copy()->startOfDay(), today()->endOfDay()])
             ->whereBetween('created_at', [$rangeStart->copy()->startOfDay(), today()->endOfDay()])
-            ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
+            ->when(! $user->seesAllTransactions(), fn ($q) => $q->where('user_id', $user->id))
             ->selectRaw('date(created_at) as day, sum(total) as total')
             ->groupBy('day')
             ->pluck('total', 'day');
