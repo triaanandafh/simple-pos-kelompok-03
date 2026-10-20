@@ -58,7 +58,10 @@
                 class="bg-green-700 text-white rounded px-4 py-2 hover:bg-green-800">
                 Export CSV
             </a>
-
+            <a href="{{ route('reports.export.pdf', ['from' => $from, 'to' => $to, 'category' => $selectedCategory]) }}" 
+                class="bg-red-600 text-white px-4 py-2 rounded">
+                Export PDF
+            </a>
         </form>
 
         <section class="border rounded-md p-4 max-w-md">

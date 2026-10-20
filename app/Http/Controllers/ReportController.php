@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Transaction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -72,6 +74,28 @@ class ReportController extends Controller
 
             fclose($out);
         }, 'laporan-penjualan.csv');
+    }
+
+    public function exportPdf(Request $request): Response
+    {
+        $validated = $request->validate([
+            'category' => ['nullable', 'integer', 'exists:categories,id'],
+        ]);
+        $categoryId = $validated['category'] ?? null;
+        [$from, $to] = $this->resolveDateRange($request);
+        $query = $this->filteredQuery($from, $to, $categoryId);
+
+        $pdf = Pdf::loadView('reports.pdf', [
+            'totalPenjualan' => $categoryId === null
+                ? $query->sum('total')
+                : $query->get()->sum(fn (Transaction $transaction) => $transaction->details->sum('subtotal')),
+            'jumlahTransaksi' => $query->count(),
+            'transactions' => $query->latest()->limit(50)->get(),
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+        ]);
+
+        return $pdf->download('laporan-penjualan.pdf');
     }
 
     private function resolveDateRange(Request $request): array
