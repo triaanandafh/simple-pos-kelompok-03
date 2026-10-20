@@ -20,6 +20,10 @@
         <a href="{{ route('categories.index') }}" class="hover:underline">
             Kategori
         </a>
+
+        <a href="{{ route('reports.index') }}" class="hover:underline">
+            Laporan
+        </a>
     @endif
 
     <span class="ml-auto text-sm">
