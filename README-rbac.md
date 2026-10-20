@@ -21,12 +21,14 @@ Dokumen ini berisi rangkaian skenario pengujian manual untuk memvalidasi mekanis
 
 ## 3. Peran Manager (`manager@pos.test`)
 * **Langkah Pengujian:**
-  1. Keluar (*logout*), lalu login menggunakan akun dengan peran *manager*[cite: 15].
-  2. Buka halaman riwayat transaksi (`/transactions`)[cite: 15].
-  3. Coba akses halaman produk (`/products`) melalui *address bar*[cite: 13, 15].
+  1. Keluar (*logout*), lalu login menggunakan email `manager@pos.test` dengan kata sandi `password`.
+  2. Buka halaman riwayat transaksi (`/transactions`).
+  3. Coba akses halaman produk (`/products`) melalui *address bar*.
+  4. Coba akses halaman kasir (`/pos`) melalui *address bar*.
 * **Hasil yang Diharapkan:** 
-  * Manager diizinkan membuka halaman riwayat transaksi (`/transactions`)[cite: 15].
-  * Akses ke halaman manajemen produk (`/products`) ditolak dengan error `403 Forbidden`[cite: 13, 15].
+  * Manager diizinkan membuka halaman riwayat transaksi (`/transactions`) dan dapat melihat seluruh transaksi (semua kasir) di dashboard.
+  * Akses ke halaman manajemen produk (`/products`) ditolak dengan error `403 Forbidden`.
+  * Akses ke halaman kasir POS (`/pos`) juga ditolak dengan error `403 Forbidden` (manager tidak menjual).
 
 ## 4. Pengguna Belum Login (Tamu / Guest)
 * **Langkah Pengujian:**
