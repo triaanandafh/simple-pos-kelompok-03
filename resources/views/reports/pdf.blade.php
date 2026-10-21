@@ -28,14 +28,20 @@
             </tr>
         </thead>
         <tbody>
-            @foreach ($transactions as $t)
-            <tr>
-                <td>{{ $t->id }}</td>
-                <td>{{ $t->created_at->format('Y-m-d H:i') }}</td>
-                <td>{{ $t->user->name ?? 'N/A' }}</td>
-                <td class="right">Rp {{ number_format($t->total) }}</td>
-            </tr>
-            @endforeach
+            @forelse ($transactions as $t)
+                <tr>
+                    <td>{{ $t->id }}</td>
+                    <td>{{ $t->created_at->format('Y-m-d H:i') }}</td>
+                    <td>{{ $t->user?->name ?? '-' }}</td>
+                    <td class="right">
+                        Rp {{ number_format($categoryId === null ? $t->total : $t->details->sum('subtotal')) }}
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="4">Tidak ada transaksi pada periode ini.</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 </body>

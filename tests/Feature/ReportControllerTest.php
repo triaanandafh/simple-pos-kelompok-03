@@ -51,6 +51,23 @@ class ReportControllerTest extends TestCase
             ->assertSee('value="'.now()->toDateString().'"', false);
     }
 
+    public function test_admin_can_download_a_pdf_sales_report(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin);
+
+        $this->createTransaction($admin, 250, '2026-10-02 12:00:00');
+
+        $this->get(route('reports.export.pdf', [
+            'from' => '2026-10-01',
+            'to' => '2026-10-03',
+        ]))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf')
+            ->assertHeader('content-disposition', 'attachment; filename=laporan-penjualan.pdf')
+            ->assertSee('%PDF-', false);
+    }
+
     public function test_report_filters_sales_by_category_and_preserves_the_date_range(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

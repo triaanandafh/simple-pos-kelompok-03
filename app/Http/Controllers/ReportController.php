@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Transaction;
+use App\Models\TransactionDetail;
 use App\Exports\SalesReportExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -91,11 +92,17 @@ class ReportController extends Controller
         $pdf = Pdf::loadView('reports.pdf', [
             'totalPenjualan' => $categoryId === null
                 ? $query->sum('total')
-                : $query->get()->sum(fn (Transaction $transaction) => $transaction->details->sum('subtotal')),
+                : TransactionDetail::query()
+                    ->whereHas('transaction', fn (Builder $transactionQuery) => $transactionQuery
+                        ->whereBetween('created_at', [$from, $to]))
+                    ->whereHas('product', fn (Builder $productQuery) => $productQuery
+                        ->where('category_id', $categoryId))
+                    ->sum('subtotal'),
             'jumlahTransaksi' => $query->count(),
             'transactions' => $query->latest()->limit(50)->get(),
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
+            'categoryId' => $categoryId,
         ]);
 
         return $pdf->download('laporan-penjualan.pdf');
