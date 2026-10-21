@@ -36,8 +36,7 @@
                     <option value="">Semua kategori</option>
 
                     @foreach ($categories as $category)
-                        <option value="{{ $category->id }}"
-                            @selected((string) $selectedCategory === (string) $category->id)>
+                        <option value="{{ $category->id }}" @selected((string) $selectedCategory === (string) $category->id)>
                             {{ $category->name }}
                         </option>
                     @endforeach

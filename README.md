@@ -57,3 +57,7 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Diskusi: Format laporan untuk 100.000 transaksi
+
+Pilih CSV karena dapat di-stream secara bertahap sehingga lebih hemat memori dan praktis untuk mengolah data besar. PDF kurang cocok karena seluruh dokumen dimuat ke memori, sedangkan Excel lebih berat untuk jumlah baris sebanyak itu.
