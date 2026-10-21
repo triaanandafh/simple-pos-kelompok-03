@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Transaction;
+use App\Exports\SalesReportExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -134,5 +137,21 @@ class ReportController extends Controller
                     ),
                 ]);
             });
+    }
+
+        public function exportExcel(Request $request): BinaryFileResponse
+    {
+        $validated = $request->validate([
+            'category' => ['nullable', 'integer', 'exists:categories,id'],
+        ]);
+
+        $categoryId = $validated['category'] ?? null;
+
+        [$from, $to] = $this->resolveDateRange($request);
+
+        return Excel::download(
+            new SalesReportExport($this->filteredQuery($from, $to, $categoryId)),
+            'laporan-penjualan.xlsx',
+        );
     }
 }
