@@ -20,12 +20,12 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'store']);
 });
 
-// Halaman info khusus tamu (belum login)
+// Halaman info khusus tamu
 Route::get('/info', function () {
     return view('info');
 })->middleware('guest')->name('info');
 
-// Route untuk User yang SUDAH Login
+// Route untuk User yang Sudah Login
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])
         ->name('logout');
@@ -59,16 +59,25 @@ Route::middleware('auth')->group(function () {
         Route::resource('products', ProductController::class)
             ->except(['show', 'destroy']);
 
+        // Laporan penjualan
         Route::get('/reports', [ReportController::class, 'index'])
             ->name('reports.index');
 
+        // Export laporan
         Route::get('/reports/export/csv', [ReportController::class, 'exportCsv'])
             ->name('reports.export.csv');
-        
+
         Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])
             ->name('reports.export.pdf');
 
-        Route::get('/reports/export/xlsx', [ReportController::class, 'exportExcel'])->name('reports.export.xlsx');
-        
+        Route::get('/reports/export/xlsx', [ReportController::class, 'exportExcel'])
+            ->name('reports.export.xlsx');
+
+        // Import produk dari CSV
+        Route::get('/import', [ReportController::class, 'importForm'])
+            ->name('import.create');
+
+        Route::post('/import', [ReportController::class, 'import'])
+            ->name('import.store');
     });
 });
