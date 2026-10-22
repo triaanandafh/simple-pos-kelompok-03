@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Models\Transaction;
 use App\Exports\SalesReportExport;
+use App\Jobs\ImportProductsJob;
+use App\Models\Category;
+use App\Models\Transaction;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
+use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Http\Response;
-use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
@@ -84,14 +86,20 @@ class ReportController extends Controller
         $validated = $request->validate([
             'category' => ['nullable', 'integer', 'exists:categories,id'],
         ]);
+
         $categoryId = $validated['category'] ?? null;
+
         [$from, $to] = $this->resolveDateRange($request);
+
         $query = $this->filteredQuery($from, $to, $categoryId);
 
         $pdf = Pdf::loadView('reports.pdf', [
             'totalPenjualan' => $categoryId === null
                 ? $query->sum('total')
-                : $query->get()->sum(fn (Transaction $transaction) => $transaction->details->sum('subtotal')),
+                : $query->get()->sum(
+                    fn (Transaction $transaction) =>
+                        $transaction->details->sum('subtotal')
+                ),
             'jumlahTransaksi' => $query->count(),
             'transactions' => $query->latest()->limit(50)->get(),
             'from' => $from->toDateString(),
@@ -99,6 +107,87 @@ class ReportController extends Controller
         ]);
 
         return $pdf->download('laporan-penjualan.pdf');
+    }
+
+    public function exportExcel(Request $request): BinaryFileResponse
+    {
+        $validated = $request->validate([
+            'category' => ['nullable', 'integer', 'exists:categories,id'],
+        ]);
+
+        $categoryId = $validated['category'] ?? null;
+
+        [$from, $to] = $this->resolveDateRange($request);
+
+        return Excel::download(
+            new SalesReportExport(
+                $this->filteredQuery($from, $to, $categoryId)
+            ),
+            'laporan-penjualan.xlsx',
+        );
+    }
+
+    public function importForm(): View
+    {
+        return view('reports.import');
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'csv' => ['required', 'file', 'mimes:csv,txt'],
+        ]);
+
+        $file = $request->file('csv');
+
+        $lines = file(
+            $file->getRealPath(),
+            FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES
+        );
+
+        if ($lines === false || count($lines) < 2) {
+            return back()->with(
+                'error',
+                'File CSV kosong atau tidak dapat dibaca.'
+            );
+        }
+
+        $header = str_getcsv(array_shift($lines));
+
+        // Menghapus BOM jika file CSV disimpan dari Excel.
+        if (isset($header[0])) {
+            $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
+        }
+
+        $header = array_map('trim', $header);
+
+        $requiredColumns = ['name', 'category_id', 'price'];
+
+        if (
+            count($header) !== count(array_unique($header))
+            || array_diff($requiredColumns, $header) !== []
+        ) {
+            return back()->with(
+                'error',
+                'Header CSV harus memuat kolom name, category_id, dan price.'
+            );
+        }
+
+        $path = $file->store('imports', 'local');
+
+        if ($path === false) {
+            return back()->with(
+                'error',
+                'File CSV gagal disimpan.'
+            );
+        }
+
+        ImportProductsJob::dispatch($path);
+
+        return back()->with(
+            'success',
+            'Import sedang diproses di background.'
+        );
     }
 
     private function resolveDateRange(Request $request): array
@@ -137,21 +226,5 @@ class ReportController extends Controller
                     ),
                 ]);
             });
-    }
-
-        public function exportExcel(Request $request): BinaryFileResponse
-    {
-        $validated = $request->validate([
-            'category' => ['nullable', 'integer', 'exists:categories,id'],
-        ]);
-
-        $categoryId = $validated['category'] ?? null;
-
-        [$from, $to] = $this->resolveDateRange($request);
-
-        return Excel::download(
-            new SalesReportExport($this->filteredQuery($from, $to, $categoryId)),
-            'laporan-penjualan.xlsx',
-        );
     }
 }

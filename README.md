@@ -57,3 +57,20 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+
+
+
+### Proses yang Layak Menggunakan Queue Job
+
+Proses: Pengiriman notifikasi setelah transaksi penjualan berhasil.
+
+Pada aplikasi Simple POS, pengiriman notifikasi kepada admin atau manager setelah transaksi berhasil disimpan merupakan salah satu proses yang layak dipindahkan ke Queue Job.
+
+Alasannya, pengiriman notifikasi dapat membutuhkan waktu tambahan, terutama jika menggunakan layanan email atau layanan notifikasi eksternal. Jika proses tersebut dijalankan secara langsung, respons aplikasi kepada kasir dapat menjadi lebih lambat.
+
+Dengan menggunakan Queue Job, sistem dapat menyimpan transaksi terlebih dahulu, kemudian memasukkan tugas pengiriman notifikasi ke dalam antrean untuk diproses oleh worker di background. Dengan demikian, kasir dapat melanjutkan pekerjaannya tanpa harus menunggu pengiriman notifikasi selesai.
+
+Namun, penyimpanan transaksi dan pembaruan stok tetap harus dipastikan berhasil sebelum notifikasi diproses. Jika pengiriman notifikasi gagal, sistem dapat mencoba kembali sesuai konfigurasi retry pada job.
+
+Penggunaan Queue Job pada proses ini diharapkan dapat meningkatkan responsivitas aplikasi dan memisahkan proses utama penjualan dari proses tambahan yang tidak harus selesai saat itu juga.
