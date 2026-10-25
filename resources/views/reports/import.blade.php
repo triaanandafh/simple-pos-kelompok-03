@@ -60,5 +60,29 @@
                 Import
             </button>
         </form>
+
+        @if(isset($importErrors) && $importErrors->isNotEmpty())
+            <div class="mt-6 max-w-2xl border-t pt-4">
+                <h2 class="text-md font-semibold text-red-600 mb-3">Log Baris Gagal Di-import</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm border border-gray-200 bg-white">
+                        <thead class="bg-red-50 text-red-700">
+                            <tr>
+                                <th class="border px-3 py-2 text-center w-20">Baris ke-</th>
+                                <th class="border px-3 py-2 text-left">Pesan Error</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($importErrors as $error)
+                                <tr class="border-b">
+                                    <td class="border px-3 py-2 font-medium text-center">{{ $error->row_number }}</td>
+                                    <td class="border px-3 py-2 text-red-600">{{ $error->error_message }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
     </div>
 @endsection
