@@ -132,48 +132,13 @@ class ReportController extends Controller
         return view('reports.import');
     }
 
-    public function import(Request $request): RedirectResponse
+public function import(Request $request): RedirectResponse
     {
         $request->validate([
             'csv' => ['required', 'file', 'mimes:csv,txt'],
         ]);
 
-        $file = $request->file('csv');
-
-        $lines = file(
-            $file->getRealPath(),
-            FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES
-        );
-
-        if ($lines === false || count($lines) < 2) {
-            return back()->with(
-                'error',
-                'File CSV kosong atau tidak dapat dibaca.'
-            );
-        }
-
-        $header = str_getcsv(array_shift($lines));
-
-        // Menghapus BOM jika file CSV disimpan dari Excel.
-        if (isset($header[0])) {
-            $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
-        }
-
-        $header = array_map('trim', $header);
-
-        $requiredColumns = ['name', 'category_id', 'price'];
-
-        if (
-            count($header) !== count(array_unique($header))
-            || array_diff($requiredColumns, $header) !== []
-        ) {
-            return back()->with(
-                'error',
-                'Header CSV harus memuat kolom name, category_id, dan price.'
-            );
-        }
-
-        $path = $file->store('imports', 'local');
+        $path = $request->file('csv')->store('imports');
 
         if ($path === false) {
             return back()->with(
