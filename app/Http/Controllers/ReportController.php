@@ -6,6 +6,8 @@ use App\Exports\SalesReportExport;
 use App\Jobs\ImportProductsJob;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -93,6 +95,19 @@ class ReportController extends Controller
 
         $query = $this->filteredQuery($from, $to, $categoryId);
 
+        // Query mengambil 5-10 produk terlaris
+        $topProducts = Product::select('products.name', DB::raw('SUM(transaction_details.qty) as total_sold'))
+        ->join('transaction_details', 'products.id', '=', 'transaction_details.product_id')
+        ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+        ->whereBetween('transactions.created_at', [$from, $to])
+        ->when($categoryId !== null, function ($q) use ($categoryId) {
+            $q->where('products.category_id', $categoryId);
+        })
+        ->groupBy('products.id', 'products.name')
+        ->orderByDesc('total_sold')
+        ->limit(5)
+        ->get();
+
         $pdf = Pdf::loadView('reports.pdf', [
             'totalPenjualan' => $categoryId === null
                 ? $query->sum('total')
@@ -102,6 +117,7 @@ class ReportController extends Controller
                 ),
             'jumlahTransaksi' => $query->count(),
             'transactions' => $query->latest()->limit(50)->get(),
+            'topProducts' => $topProducts, 
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
         ]);
