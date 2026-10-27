@@ -17,6 +17,26 @@
     <p>Periode {{ $from }} s.d. {{ $to }}</p>
     <p>Total penjualan: <strong>Rp {{ number_format($totalPenjualan) }}</strong> dari {{ $jumlahTransaksi }} transaksi</p>
 
+        <h3>Produk Terlaris</h3>
+    <table border="1" cellspacing="0" cellpadding="5" width="100%">
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Nama Produk</th>
+                <th>Total Terjual</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($topProducts as $index => $product)
+            <tr>
+                <td>{{ $index + 1 }}</td>
+                <td>{{ $product->name }}</td>
+                <td>{{ $product->total_sold }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+
     <p>50 transaksi terbaru pada periode ini:</p>
     <table>
         <thead>

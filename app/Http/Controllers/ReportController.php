@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Models\Transaction;
-use App\Models\TransactionDetail;
 use App\Exports\SalesReportExport;
+use App\Jobs\ImportProductsJob;
+use App\Models\Category;
+use App\Models\Transaction;
+use App\Models\Product;
+use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -85,27 +88,90 @@ class ReportController extends Controller
         $validated = $request->validate([
             'category' => ['nullable', 'integer', 'exists:categories,id'],
         ]);
+
         $categoryId = $validated['category'] ?? null;
+
         [$from, $to] = $this->resolveDateRange($request);
+
         $query = $this->filteredQuery($from, $to, $categoryId);
+
+        // Query mengambil 5-10 produk terlaris
+        $topProducts = Product::select('products.name', DB::raw('SUM(transaction_details.qty) as total_sold'))
+        ->join('transaction_details', 'products.id', '=', 'transaction_details.product_id')
+        ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+        ->whereBetween('transactions.created_at', [$from, $to])
+        ->when($categoryId !== null, function ($q) use ($categoryId) {
+            $q->where('products.category_id', $categoryId);
+        })
+        ->groupBy('products.id', 'products.name')
+        ->orderByDesc('total_sold')
+        ->limit(5)
+        ->get();
 
         $pdf = Pdf::loadView('reports.pdf', [
             'totalPenjualan' => $categoryId === null
                 ? $query->sum('total')
-                : TransactionDetail::query()
-                    ->whereHas('transaction', fn (Builder $transactionQuery) => $transactionQuery
-                        ->whereBetween('created_at', [$from, $to]))
-                    ->whereHas('product', fn (Builder $productQuery) => $productQuery
-                        ->where('category_id', $categoryId))
-                    ->sum('subtotal'),
+                : $query->get()->sum(
+                    fn (Transaction $transaction) =>
+                        $transaction->details->sum('subtotal')
+                ),
             'jumlahTransaksi' => $query->count(),
             'transactions' => $query->latest()->limit(50)->get(),
+            'topProducts' => $topProducts, 
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
             'categoryId' => $categoryId,
         ]);
 
         return $pdf->download('laporan-penjualan.pdf');
+    }
+
+    public function exportExcel(Request $request): BinaryFileResponse
+    {
+        $validated = $request->validate([
+            'category' => ['nullable', 'integer', 'exists:categories,id'],
+        ]);
+
+        $categoryId = $validated['category'] ?? null;
+
+        [$from, $to] = $this->resolveDateRange($request);
+
+        return Excel::download(
+            new SalesReportExport(
+                $this->filteredQuery($from, $to, $categoryId)
+            ),
+            'laporan-penjualan.xlsx',
+        );
+    }
+
+    public function importForm(): View
+{
+    $importErrors = \App\Models\ImportError::orderBy('row_number')->get();
+
+    return view('reports.import', compact('importErrors'));
+}
+
+public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'csv' => ['required', 'file', 'mimes:csv,txt'],
+        ]);
+
+        $path = $request->file('csv')->store('imports');
+
+        if ($path === false) {
+            return back()->with(
+                'error',
+                'File CSV gagal disimpan.'
+            );
+        }
+
+        ImportProductsJob::dispatch($path);
+
+        return back()->with(
+            'success',
+            'Import sedang diproses di background.'
+        );
     }
 
     private function resolveDateRange(Request $request): array
@@ -144,21 +210,5 @@ class ReportController extends Controller
                     ),
                 ]);
             });
-    }
-
-        public function exportExcel(Request $request): BinaryFileResponse
-    {
-        $validated = $request->validate([
-            'category' => ['nullable', 'integer', 'exists:categories,id'],
-        ]);
-
-        $categoryId = $validated['category'] ?? null;
-
-        [$from, $to] = $this->resolveDateRange($request);
-
-        return Excel::download(
-            new SalesReportExport($this->filteredQuery($from, $to, $categoryId)),
-            'laporan-penjualan.xlsx',
-        );
     }
 }
