@@ -19,7 +19,10 @@ class EnsureIdempotency
         }
 
         $userId = $request->user()->id;
-        $hash = hash('sha256', $request->getContent());
+
+        // Hitung hash dari body request untuk deteksi key yang dipakai dengan isi berbeda
+        $content = $request->getContent();
+        $hash = hash('sha256', $content);
 
         try {
             // reservasi key: kalau sudah ada, unique index menolak dan masuk ke catch
@@ -45,7 +48,13 @@ class EnsureIdempotency
                 ->header('Idempotent-Replayed', 'true');
         }
 
-        $response = $next($request);
+        try {
+            $response = $next($request);
+        } catch (\Throwable $e) {
+            // gagal (misalnya validasi 422): hapus reservasi supaya klien boleh coba lagi
+            $record->delete();
+            throw $e;
+        }
 
         if ($response->isSuccessful()) {
             $record->update([
