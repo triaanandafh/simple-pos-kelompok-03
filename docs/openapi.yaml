@@ -161,3 +161,7 @@ components:
         message:
           type: string
           example: "Unauthenticated."
+
+
+# Perbandingan Pengalaman Pengujian (Postman vs cURL):
+# Pengujian ketiga endpoint (/api/login, /api/products, dan /api/transactions) menggunakan Postman memberikan pengalaman yang jauh lebih visual dan efisien dibandingkan cURL. Menggunakan GUI antarmuka Postman mempermudah pengisian header (seperti Authorization Bearer token dan Accept application/json) serta body JSON tanpa perlu khawatir terhadap kesalahan sintaksis kutip atau escaping karakter di terminal. Selain itu, Postman mempermudah inspeksi respons JSON dan manajemen token Sanctum secara rapi.
