@@ -6,10 +6,10 @@ info:
   contact:
     name: Tim Pengembang Simple POS
 servers:
-  - url: http://localhost:8000
-    description: Development server
+  - url: http://127.0.0.1:8000/api/v1
+    description: Server Lokal POS API v1
 paths:
-  /api/products:
+  /products:
     get:
       summary: Daftar produk (dengan paginasi)
       description: |
